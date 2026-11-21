@@ -23,7 +23,17 @@ public class TintListener implements Listener {
         if (tintId != null && !tintId.isEmpty()) {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (event.getPlayer().isOnline()) {
-                    tintManager.applyTint(event.getPlayer(), tintId);
+                    // Проверяем, включены ли покраски в таб-листе в конфиге
+                    boolean tablistEnabled = plugin.getConfig().getBoolean("tablist-enabled", true);
+                    
+                    if (tablistEnabled) {
+                        // Если включено, применяем покраску (но это может затереть пин)
+                        tintManager.applyTint(event.getPlayer(), tintId);
+                    } else {
+                        // Если выключено в конфиге, покраска не трогает таб-лист
+                        // (здесь можно добавить применение только в чат, если у вас есть такая логика)
+                        plugin.getLogger().info("Покраска для " + event.getPlayer().getName() + " не применена в таб-листе (отключено в конфиге).");
+                    }
                 }
             }, 5L);
         }
