@@ -1,51 +1,54 @@
-package com.example.emojiprefix;
+private TintManager tintManager;
 
-import com.example.emojiprefix.command.PinsCommand;
-import com.example.emojiprefix.listener.PlayerListener;
-import com.example.emojiprefix.util.EmojiManager;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
+@Override
+public void onEnable() {
+    saveDefaultConfig();
 
-public final class EmojiPrefixPlugin extends JavaPlugin {
+    // --- Смайлики ---
+    emojiManager = new EmojiManager(this);
+    emojiManager.loadEmojis();
 
-    private EmojiManager emojiManager;
+    PinsCommand pinsCommand = new PinsCommand(this, emojiManager);
+    getCommand("pins").setExecutor(pinsCommand);
+    getCommand("pins").setTabCompleter(pinsCommand);
 
-    @Override
-    public void onEnable() {
-        // Сохраняем конфиг по умолчанию
-        saveDefaultConfig();
+    Bukkit.getPluginManager().registerEvents(new PlayerListener(this, emojiManager), this);
 
-        // Инициализируем менеджер смайликов
-        emojiManager = new EmojiManager(this);
-        emojiManager.loadEmojis();
+    Bukkit.getOnlinePlayers().forEach(player -> {
+        String emoji = emojiManager.getPlayerEmoji(player.getUniqueId());
+        if (emoji != null && !emoji.isEmpty()) {
+            emojiManager.applyEmoji(player, emoji);
+        }
+    });
 
-        // Регистрируем команды
-        PinsCommand pinsCommand = new PinsCommand(this, emojiManager);
-        getCommand("pins").setExecutor(pinsCommand);
-        getCommand("pins").setTabCompleter(pinsCommand);
+    // --- Покраски ---
+    tintManager = new TintManager(this);
+    tintManager.loadTints();
 
-        // Регистрируем слушателя событий
-        Bukkit.getPluginManager().registerEvents(new PlayerListener(this, emojiManager), this);
+    TintsCommand tintsCommand = new TintsCommand(this, tintManager);
+    getCommand("tints").setExecutor(tintsCommand);
+    getCommand("tints").setTabCompleter(tintsCommand);
 
-        // Применяем префиксы ко всем игрокам при старте (если сервер перезапускается)
-        Bukkit.getOnlinePlayers().forEach(player -> {
-            String emoji = emojiManager.getPlayerEmoji(player.getUniqueId());
-            if (emoji != null && !emoji.isEmpty()) {
-                emojiManager.applyEmoji(player, emoji);
-            }
-        });
+    Bukkit.getPluginManager().registerEvents(new TintListener(this, tintManager), this);
 
-        getLogger().info("EmojiPrefix enabled! Loaded " + emojiManager.getEmojiCount() + " emojis.");
-    }
+    Bukkit.getOnlinePlayers().forEach(player -> {
+        String tintId = tintManager.getCurrentTintId(player.getUniqueId());
+        if (tintId != null && !tintId.isEmpty()) {
+            tintManager.applyTint(player, tintId);
+        }
+    });
 
-    @Override
-    public void onDisable() {
-        // Убираем Scoreboard Team при выключении
-        emojiManager.cleanup();
-        getLogger().info("EmojiPrefix disabled.");
-    }
+    getLogger().info("EmojiPrefix enabled! Loaded " + emojiManager.getEmojiCount()
+        + " emojis and " + tintManager.getTintCount() + " tints.");
+}
 
-    public EmojiManager getEmojiManager() {
-        return emojiManager;
-    }
+@Override
+public void onDisable() {
+    emojiManager.cleanup();
+    tintManager.cleanup();
+    getLogger().info("EmojiPrefix disabled.");
+}
+
+public TintManager getTintManager() {
+    return tintManager;
 }
