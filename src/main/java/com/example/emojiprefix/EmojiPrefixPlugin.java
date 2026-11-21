@@ -21,7 +21,6 @@ public final class EmojiPrefixPlugin extends JavaPlugin {
 
     private TintManager tintManager;
 
-    // ==================== ХРАНИЛИЩЕ СМАЙЛИКОВ ====================
     private final Map<String, String> availableEmojis = new HashMap<>();
     private final Map<UUID, String> currentEmojis = new HashMap<>();
     private final Map<UUID, List<String>> unlockedEmojis = new HashMap<>();
@@ -31,42 +30,31 @@ public final class EmojiPrefixPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-
-        // ==================== ЗАГРУЗКА СМАЙЛИКОВ ====================
         loadEmojiData();
 
-        PinsCommand pinsCommand = new PinsCommand(this, null); // null передаем, так как логика теперь тут
+        PinsCommand pinsCommand = new PinsCommand(this);
         getCommand("pins").setExecutor(pinsCommand);
         getCommand("pins").setTabCompleter(pinsCommand);
+        Bukkit.getPluginManager().registerEvents(new PlayerListener(this), this);
 
-        Bukkit.getPluginManager().registerEvents(new PlayerListener(this, null), this);
-
-        // ==================== ПОКРАСКИ ====================
         tintManager = new TintManager(this);
         tintManager.loadTints();
-
         TintsCommand tintsCommand = new TintsCommand(this, tintManager);
         getCommand("tints").setExecutor(tintsCommand);
         getCommand("tints").setTabCompleter(tintsCommand);
-
         Bukkit.getPluginManager().registerEvents(new TintListener(this, tintManager), this);
 
-        getLogger().info("EmojiPrefix enabled! Loaded " + availableEmojis.size()
-            + " emojis and " + tintManager.getTintCount() + " tints.");
+        getLogger().info("EmojiPrefix enabled!");
     }
 
     @Override
     public void onDisable() {
-        saveEmojiData(); // Сохраняем при выключении
+        saveEmojiData();
         cleanupEmojis();
         if (tintManager != null) tintManager.cleanup();
-        getLogger().info("EmojiPrefix disabled.");
     }
 
-    // ==================== ЛОГИКА СМАЙЛИКОВ ====================
-
     public void loadEmojiData() {
-        // 1. Читаем доступные смайлики из config.yml
         availableEmojis.clear();
         if (getConfig().getConfigurationSection("emojis") != null) {
             for (String key : getConfig().getConfigurationSection("emojis").getKeys(false)) {
@@ -74,7 +62,6 @@ public final class EmojiPrefixPlugin extends JavaPlugin {
             }
         }
 
-        // 2. Читаем playerdata.yml
         dataFile = new File(getDataFolder(), "playerdata.yml");
         if (!dataFile.exists()) {
             try {
@@ -107,7 +94,7 @@ public final class EmojiPrefixPlugin extends JavaPlugin {
 
     public void saveEmojiData() {
         if (dataConfig == null || dataFile == null) return;
-        dataConfig.set("players", null); // Очищаем старое
+        dataConfig.set("players", null);
         for (UUID uuid : currentEmojis.keySet()) {
             dataConfig.set("players." + uuid + ".current", currentEmojis.get(uuid));
         }
@@ -121,20 +108,18 @@ public final class EmojiPrefixPlugin extends JavaPlugin {
         }
     }
 
-    // Методы для команд и листенеров
     public String getPlayerEmoji(UUID uuid) { return currentEmojis.getOrDefault(uuid, ""); }
     public String getCurrentEmojiId(UUID uuid) { return currentEmojis.get(uuid); }
     public boolean isEmojiAvailable(String id) { return availableEmojis.containsKey(id.toLowerCase()); }
     public String getEmojiSymbol(String id) { return availableEmojis.getOrDefault(id.toLowerCase(), ""); }
     public Set<String> getAllEmojiIds() { return availableEmojis.keySet(); }
-    public int getEmojiCount() { return availableEmojis.size(); }
     public List<String> getUnlockedEmojis(UUID uuid) { return unlockedEmojis.getOrDefault(uuid, new ArrayList<>()); }
     public List<String> getUnlockedEmojisForDisplay(UUID uuid) { return getUnlockedEmojis(uuid); }
 
     public boolean setPlayerEmoji(UUID uuid, String id) {
         if (!isEmojiAvailable(id)) return false;
         currentEmojis.put(uuid, id.toLowerCase());
-        saveEmojiData(); // СРАЗУ СОХРАНЯЕМ!
+        saveEmojiData();
         return true;
     }
 
