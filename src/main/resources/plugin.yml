@@ -6,7 +6,8 @@ commands:
   tints:
     description: Manage name color tints
     usage: /tints [set|clear|give|take|takeall]
-    aliases: [t, color]
+    aliases: [t, color]   # ✅ Должен быть выровнен с description, usage, с отступом в 2 пробела
+
 permissions:
   emojiprefix.admin:
     description: Allows managing emoji prefixes and tints
