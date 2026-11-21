@@ -1,54 +1,77 @@
-private TintManager tintManager;
+package com.example.emojiprefix;
 
-@Override
-public void onEnable() {
-    saveDefaultConfig();
+import com.example.emojiprefix.command.PinsCommand;
+import com.example.emojiprefix.command.TintsCommand;
+import com.example.emojiprefix.listener.PlayerListener;
+import com.example.emojiprefix.listener.TintListener;
+import com.example.emojiprefix.util.EmojiManager;
+import com.example.emojiprefix.util.TintManager;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
-    // --- Смайлики ---
-    emojiManager = new EmojiManager(this);
-    emojiManager.loadEmojis();
+public final class EmojiPrefixPlugin extends JavaPlugin {
 
-    PinsCommand pinsCommand = new PinsCommand(this, emojiManager);
-    getCommand("pins").setExecutor(pinsCommand);
-    getCommand("pins").setTabCompleter(pinsCommand);
+    private EmojiManager emojiManager;
+    private TintManager tintManager;
 
-    Bukkit.getPluginManager().registerEvents(new PlayerListener(this, emojiManager), this);
+    @Override
+    public void onEnable() {
+        // Сохраняем конфиг по умолчанию
+        saveDefaultConfig();
 
-    Bukkit.getOnlinePlayers().forEach(player -> {
-        String emoji = emojiManager.getPlayerEmoji(player.getUniqueId());
-        if (emoji != null && !emoji.isEmpty()) {
-            emojiManager.applyEmoji(player, emoji);
-        }
-    });
+        // ==================== Смайлики ====================
+        emojiManager = new EmojiManager(this);
+        emojiManager.loadEmojis();
 
-    // --- Покраски ---
-    tintManager = new TintManager(this);
-    tintManager.loadTints();
+        PinsCommand pinsCommand = new PinsCommand(this, emojiManager);
+        getCommand("pins").setExecutor(pinsCommand);
+        getCommand("pins").setTabCompleter(pinsCommand);
 
-    TintsCommand tintsCommand = new TintsCommand(this, tintManager);
-    getCommand("tints").setExecutor(tintsCommand);
-    getCommand("tints").setTabCompleter(tintsCommand);
+        Bukkit.getPluginManager().registerEvents(new PlayerListener(this, emojiManager), this);
 
-    Bukkit.getPluginManager().registerEvents(new TintListener(this, tintManager), this);
+        // Применяем префиксы ко всем игрокам при старте
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            String emoji = emojiManager.getPlayerEmoji(player.getUniqueId());
+            if (emoji != null && !emoji.isEmpty()) {
+                emojiManager.applyEmoji(player, emoji);
+            }
+        });
 
-    Bukkit.getOnlinePlayers().forEach(player -> {
-        String tintId = tintManager.getCurrentTintId(player.getUniqueId());
-        if (tintId != null && !tintId.isEmpty()) {
-            tintManager.applyTint(player, tintId);
-        }
-    });
+        // ==================== Покраски ====================
+        tintManager = new TintManager(this);
+        tintManager.loadTints();
 
-    getLogger().info("EmojiPrefix enabled! Loaded " + emojiManager.getEmojiCount()
-        + " emojis and " + tintManager.getTintCount() + " tints.");
-}
+        TintsCommand tintsCommand = new TintsCommand(this, tintManager);
+        getCommand("tints").setExecutor(tintsCommand);
+        getCommand("tints").setTabCompleter(tintsCommand);
 
-@Override
-public void onDisable() {
-    emojiManager.cleanup();
-    tintManager.cleanup();
-    getLogger().info("EmojiPrefix disabled.");
-}
+        Bukkit.getPluginManager().registerEvents(new TintListener(this, tintManager), this);
 
-public TintManager getTintManager() {
-    return tintManager;
+        // Применяем покраски ко всем игрокам при старте
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            String tintId = tintManager.getCurrentTintId(player.getUniqueId());
+            if (tintId != null && !tintId.isEmpty()) {
+                tintManager.applyTint(player, tintId);
+            }
+        });
+
+        getLogger().info("EmojiPrefix enabled! Loaded " + emojiManager.getEmojiCount()
+            + " emojis and " + tintManager.getTintCount() + " tints.");
+    }
+
+    @Override
+    public void onDisable() {
+        // Убираем Scoreboard Team при выключении
+        emojiManager.cleanup();
+        tintManager.cleanup();
+        getLogger().info("EmojiPrefix disabled.");
+    }
+
+    public EmojiManager getEmojiManager() {
+        return emojiManager;
+    }
+
+    public TintManager getTintManager() {
+        return tintManager;
+    }
 }
